@@ -8,46 +8,51 @@ trigger:
 
 pool:
   name: Default
-steps:
-- task: CopyFiles@2
-  inputs:
-    Contents: '**'
-    TargetFolder: '$(Build.ArtifactStagingDirectory)'
-- task: PublishBuildArtifacts@1
-  inputs:
-    PathtoPublish: '$(Build.ArtifactStagingDirectory)'
-    ArtifactName: 'drop'
-    publishLocation: 'Container'
-- task: DownloadBuildArtifacts@1
-  inputs:
-    buildType: 'current'
-    downloadType: 'single'
-    downloadPath: '$(System.ArtifactsDirectory)'
-- task: TerraformInstaller@0
-  displayName: terraform_installer
-  inputs:
-    terraformVersion: 'latest'
-    ArtifactName: 'drop'
-    
-- task: TerraformTaskV3@3
-  displayName: init
-  inputs:
-    provider: 'azurerm'
-    command: 'init'
-    backendServiceArm: 'azureconnection'
-    backendAzureRmResourceGroupName: 'TS-Dev-ADO-Web-RG11'
-    backendAzureRmStorageAccountName: 'storageprivm'
-    backendAzureRmContainerName: 'con2'
-    backendAzureRmKey: 'pipeline.tfstate'
-- task: TerraformTaskV3@3
-  displayName: plan
-  inputs:
-    provider: 'azurerm'
-    command: 'plan'
-    environmentServiceNameAzureRM: 'azureconnection'
-- task: TerraformTaskV3@3
-  displayName: apply
-  inputs:
-    provider: 'azurerm'
-    command: 'apply'
-    environmentServiceNameAzureRM: 'azureconnection'
+stages:
+- stage: Build
+  jobs:
+    - job: BuildJob
+      steps:
+      - task: CopyFiles@2
+        displayName: copy files
+        inputs:
+          Contents: '**'
+          TargetFolder: '$(Build.ArtifactStagingDirectory)'
+      - task: PublishBuildArtifacts@1
+        displayName: publish artifacts
+        inputs:
+          PathtoPublish: '$(Build.ArtifactStagingDirectory)'
+          ArtifactName: 'drop'
+          publishLocation: 'Container'
+- stage: Deploy
+  jobs:
+    - job: Deployjob
+      steps:
+      - task: DownloadBuildArtifacts@1
+        inputs:
+          buildType: 'current'
+          downloadType: 'single'
+          downloadPath: '$(System.ArtifactsDirectory)'
+      - task: TerraformInstaller@0
+        inputs:
+          terraformVersion: 'latest'
+      - task: TerraformTaskV3@3
+        inputs:
+          provider: 'azurerm'
+          command: 'init'
+          backendServiceArm: 'azureconnection'
+          backendAzureRmResourceGroupName: 'TS-Dev-ADO-Web-RG11'
+          backendAzureRmStorageAccountName: 'storageprivm'
+          backendAzureRmContainerName: 'con2'
+          backendAzureRmKey: 'yamlpp.tfstate'
+      - task: TerraformTaskV3@3
+        inputs:
+          provider: 'azurerm'
+          command: 'plan'
+          environmentServiceNameAzureRM: 'azureconnection'
+      - task: TerraformTaskV3@3
+        inputs:
+          provider: 'azurerm'
+          command: 'apply'
+          environmentServiceNameAzureRM: 'azureconnection'
+      
